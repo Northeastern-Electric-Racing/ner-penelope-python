@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from ner_penelope import NerDbClient, Car
 
 async def main():
-    res = NerDbClient("XXX", "XXX", Car.V24A)
+    res = NerDbClient("readonly", "Racecar202", Car.V24A)
     b1 = datetime.fromisoformat("2025-05-01T15:14:41.618Z")
     e = datetime.fromisoformat("2025-05-01T15:14:49.834Z")
     #r2 = await res.select_data_by_datatypename("EM/Measurement/Voltage", b1, e, multi_topic=False)

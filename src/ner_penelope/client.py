@@ -60,6 +60,18 @@ class NerDbClient():
             result = await conn.execute(stmt, args)
             return result
 
+    def _to_result(self, res: CursorResult) -> CursorResult | list[tuple] | NDArray | DataFrame:
+        if self.raw:
+            return res
+
+        if HAS_POLARS:
+            return pl.DataFrame(res.all(),schema=list(res.keys()))
+        elif HAS_NUMPY:
+            return np.array(res.fetchall())
+        else:
+            return res.fetchall()
+
+
 
     async def close(self) -> None:
         await self._engine.dispose()
@@ -74,15 +86,7 @@ class NerDbClient():
         """
         res = await self._execute(sql, None)
 
-        if self.raw:
-            return res
-
-        if HAS_POLARS:
-            return pl.DataFrame(res.all(),schema=list(res.keys()))
-        elif HAS_NUMPY:
-            return np.array(res.fetchall())
-        else:
-            return res.fetchall()
+        return self._to_result(res)
 
     async def select_runs_by_time(self, time_start: datetime, time_end: datetime, id=None) -> CursorResult | list[tuple] | NDArray | DataFrame:
         """
@@ -95,15 +99,7 @@ class NerDbClient():
         """
         res = await self._execute(sql, {"s": time_start, "e": time_end, "id" : id})
 
-        if self.raw:
-            return res
-
-        if HAS_POLARS:
-            return pl.DataFrame(res.all(),schema=list(res.keys()))
-        elif HAS_NUMPY:
-            return np.array(res.fetchall())
-        else:
-            return res.fetchall()
+        return self._to_result(res)
 
     async def select_data_by_datatypename(self, data_typename: str, time_start: datetime, time_end: datetime, multi_topic=False) -> CursorResult | list[tuple] | NDArray | DataFrame:
         """
@@ -116,15 +112,7 @@ class NerDbClient():
         """
         res = await self._execute(sql, { "dtn" : data_typename, "s": time_start, "e": time_end})
 
-        if self.raw:
-            return res
-
-        if HAS_POLARS:
-            return pl.DataFrame(res.all(),schema=list(res.keys()))
-        elif HAS_NUMPY:
-            return np.array(res.fetchall())
-        else:
-            return res.fetchall()
+        return self._to_result(res)
 
     async def select_data_normalized(self, data_typenames: list[str], time_start: datetime, time_end: datetime, frequency: timedelta):
         """
@@ -133,6 +121,7 @@ class NerDbClient():
         Just provide the data types and time, as well as the bucket time freqeuncy.
 
         **Note this function can hallucinate data** as it interpolates and averages to match data between timestamps.
+        Note this function will return some null data.
         """
         params =  {"all_metrics" : data_typenames, "s": time_start, "e": time_end, "bucket": frequency}
 
@@ -160,13 +149,4 @@ class NerDbClient():
 
         res = await self._execute(sql, params)
 
-
-        if self.raw:
-            return res
-
-        if HAS_POLARS:
-            return pl.DataFrame(res.all(),schema=list(res.keys()))
-        elif HAS_NUMPY:
-            return np.array(res.fetchall())
-        else:
-            return res.fetchall()
+        return self._to_result(res)
